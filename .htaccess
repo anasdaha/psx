@@ -1,0 +1,10 @@
+# Keep config and the cache folder private (Apache / LiteSpeed shared hosting).
+<FilesMatch "^config\.php$">
+  Require all denied
+</FilesMatch>
+RedirectMatch 403 /cache/
+<IfModule mod_headers.c>
+  <Files "data.json">
+    Header set Cache-Control "no-cache"
+  </Files>
+</IfModule>

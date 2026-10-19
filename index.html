@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSX Top 10 Movers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a sync note band, header, period switch, two ranked tables side by side, method, sync note band. */
+  :root {
+    --bg: #f6f7f5; --panel: #ffffff; --fg: #17201b; --muted: #5d6b63; --line: #dde3df;
+    --accent: #0f6b4f; --up: #12804f; --down: #c0392b; --warn: #9a6400; --note: #e8f1ec; --warn-bg: #fdf4e3;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111613; --panel: #18201b; --fg: #e6ece8; --muted: #95a39a; --line: #2a352f;
+      --accent: #5cc79c; --up: #4cc38a; --down: #ef7a6c; --warn: #e0b04f; --note: #1c2a23; --warn-bg: #2a2416; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+  .sync { background: var(--note); border-block: 1px solid var(--line); font-size: 13px; }
+  .sync .wrap { padding-block: 8px; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: 1px; }
+  .dot.stale { background: var(--warn); }
+  main.wrap { padding-block: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+  h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); font-weight: 600; letter-spacing: -0.01em; }
+  .updated { margin: 6px 0 0; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .updated strong { font-weight: 600; }
+  .take { margin: 6px 0 0; max-width: 65ch; }
+  .dates { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .seg { align-self: flex-start; display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+  .seg button { font: inherit; border: 0; background: transparent; color: var(--fg); padding: 7px 16px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+  .card h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .card .note { margin: 2px 0 10px; color: var(--muted); font-size: 13px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th.num { font-family: var(--sans); font-size: 12px; }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .num { text-align: right; white-space: nowrap; font-family: var(--mono); font-size: 14px; }
+  .rank { color: var(--muted); font-family: var(--mono); font-size: 12px; width: 2em; }
+  .sym { font-weight: 600; white-space: nowrap; }
+  .co { color: var(--muted); font-size: 13px; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .chip { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; font-weight: 500; color: var(--warn); font-family: var(--sans); }
+  .method { margin: 0; padding-left: 1.2em; color: var(--muted); font-size: 13px; max-width: 85ch; }
+  .method li + li { margin-top: 4px; }
+  .err { color: var(--down); }
+  .sub { margin: 4px 0 -4px; font-size: 20px; font-weight: 600; }
+  .sub-note { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+  .pred-head { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; border-top: 2px solid var(--line); }
+  .pred-head h2 { margin: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 600; }
+  .disclaimer { border: 2px solid var(--warn); background: var(--warn-bg); border-radius: 10px; padding: 16px 18px; display: flex; gap: 14px; align-items: flex-start; }
+  .disclaimer .icon { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--warn); color: var(--panel); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  .disclaimer h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: var(--fg); }
+  .disclaimer p { margin: 0; max-width: 75ch; }
+  .disclaimer p + p { margin-top: 6px; }
+  .rule { margin: 0; font-size: 14px; max-width: 80ch; }
+  .track { margin: 0; font-size: 14px; max-width: 80ch; padding: 10px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); }
+  .track strong { font-variant-numeric: tabular-nums; }
+  .track .verdict { font-weight: 600; color: var(--warn); }
+  .track .verdict.good { color: var(--up); }
+  .disclaimer-foot { margin: 0; font-size: 13px; color: var(--warn); font-weight: 500; }
+  @media (max-width: 560px) { .hide-narrow { display: none; } }
+</style>
+</head>
+<body>
+<div class="sync" id="sync-top"><div class="wrap"><span><span class="dot"></span><strong>Data syncs every <span class="mins">5</span> minutes</strong> from the Pakistan Stock Exchange (dps.psx.com.pk).</span><span class="last">Loading…</span></div></div>
+
+<main class="wrap">
+  <header>
+    <h1>PSX Top 10 Movers</h1>
+    <p class="updated" id="updated">Last updated: checking…</p>
+    <p class="take" id="takeaway">Loading prices…</p>
+    <p class="dates" id="dates"></p>
+  </header>
+
+  <div class="seg" role="group" aria-label="Period">
+    <button type="button" data-period="day">Today</button>
+    <button type="button" data-period="week">Week</button>
+    <button type="button" data-period="month">Month</button>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Sharia-compliant gainers</h2>
+      <p class="note">KSE-100 stocks that are also in PSX's KMI All Share index.</p>
+      <div class="scroll"><table data-group="sharia"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Change (%)</th><th class="num">Volume</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>Non-Sharia gainers</h2>
+      <p class="note">KSE-100 stocks that are not in the KMI All Share index.</p>
+      <div class="scroll"><table data-group="conv"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Change (%)</th><th class="num">Volume</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+
+  <h2 class="sub" id="fallers">Biggest fallers <span class="sub-note" id="fall-note"></span></h2>
+  <div class="grid">
+    <section class="card">
+      <h2>Sharia-compliant fallers</h2>
+      <p class="note">The 10 biggest drops among Sharia-compliant KSE-100 stocks. Only stocks in the minus are listed.</p>
+      <div class="scroll"><table data-group="sharia" data-dir="down"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Change (%)</th><th class="num">Volume</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+      <p class="note empty" hidden>No Sharia-compliant stock is down for this period.</p>
+    </section>
+    <section class="card">
+      <h2>Non-Sharia fallers</h2>
+      <p class="note">The 10 biggest drops among non-Sharia KSE-100 stocks. Only stocks in the minus are listed.</p>
+      <div class="scroll"><table data-group="conv" data-dir="down"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Change (%)</th><th class="num">Volume</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+      <p class="note empty" hidden>No non-Sharia stock is down for this period.</p>
+    </section>
+  </div>
+
+  <section class="pred-head" id="predictions">
+    <h2>Predictions</h2>
+    <div class="disclaimer" role="note">
+      <div class="icon" aria-hidden="true">!</div>
+      <div>
+        <h3>These are predictions only. There is no guarantee.</h3>
+        <p>Nobody can reliably predict share prices. These picks come from a simple rule applied to past PSX prices, and the track record below shows how often that rule has actually been right. They are not investment advice or a recommendation to buy or sell.</p>
+        <p><strong>Do your own research and plan your investments according to your own situation.</strong> You can lose money in the stock market.</p>
+      </div>
+    </div>
+    <div class="seg" role="group" aria-label="Prediction period" id="pred-seg">
+      <button type="button" data-horizon="tomorrow">Tomorrow</button>
+      <button type="button" data-horizon="week">Within a week</button>
+      <button type="button" data-horizon="month">Within a month</button>
+    </div>
+    <p class="rule" id="pred-rule"></p>
+    <p class="track" id="pred-track">Loading track record…</p>
+  </section>
+
+  <div class="grid" id="pred-grid">
+    <section class="card">
+      <h2>Sharia-compliant picks</h2>
+      <p class="note">KSE-100 stocks in the KMI All Share index, trading at least 50,000 shares a day.</p>
+      <div class="scroll"><table data-pred="sharia"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Last 5 days (%)</th><th class="num">Last 20 days (%)</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>Non-Sharia picks</h2>
+      <p class="note">KSE-100 stocks outside the KMI All Share index, trading at least 50,000 shares a day.</p>
+      <div class="scroll"><table data-pred="conv"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Last 5 days (%)</th><th class="num">Last 20 days (%)</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+  <p class="disclaimer-foot">Reminder: predictions only, no guarantee. Do your own research before you buy or sell.</p>
+
+  <section class="card">
+    <h2>How this is worked out</h2>
+    <ul class="method">
+      <li>Stocks: the KSE-100 index members listed on dps.psx.com.pk. Sharia-compliant means the stock is also in PSX's KMI All Share index.</li>
+      <li>Today compares the latest price with the previous close. Week compares with the close 5 trading sessions back, Month with the close 21 sessions back.</li>
+      <li>During market hours the price is PSX's latest traded price at the last sync, so it moves until the close.</li>
+      <li>Volume is shares traded over the same period. A "thin" tag means volume was under a quarter of the typical KSE-100 stock for that period, so the move rests on few trades.</li>
+      <li>An "XD" tag means the stock went ex-dividend in the period. Prices are not adjusted, so its Week or Month change is understated by the dividend.</li>
+      <li>Predictions use one rule per period, chosen by testing 20 simple rules on 13 months of PSX prices (Sep 2025 to Oct 2026). Rules that buy recent winners did worse than average on PSX. Rules that buy recent fallers did slightly better, but only slightly. The track record shown with the picks is recalculated every day on the past year of data.</li>
+      <li>The track record uses today's KSE-100 members, so it leaves out companies that dropped out of the index. That makes past results look a little better than they really were.</li>
+      <li>Nothing here is a buy or sell recommendation.</li>
+    </ul>
+  </section>
+</main>
+
+<div class="sync" id="sync-bottom"><div class="wrap"><span><span class="dot"></span><strong>Data syncs every <span class="mins">5</span> minutes</strong> from the Pakistan Stock Exchange.</span><span class="last"></span></div></div>
+
+<script>
+(function () {
+  var data = null, period = 'day', horizon = 'tomorrow';
+  try { horizon = localStorage.getItem('psx-horizon') || 'tomorrow'; } catch (e) {}
+  try { period = localStorage.getItem('psx-period') || 'day'; } catch (e) {}
+  var LABEL = { day: 'today', week: 'this week', month: 'this month' };
+  var VOL = { day: 'vol_day', week: 'vol_week', month: 'vol_month' };
+  var nf2 = new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var nf0 = new Intl.NumberFormat('en');
+  var pct = function (v) { return (v > 0 ? '+' : '') + nf2.format(v); };
+  var day = function (s) { return new Date(s + 'T00:00:00+05:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Karachi' }); };
+  var time = function (s) { return new Date(s).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short', timeZone: 'Asia/Karachi' }) + ' PKT'; };
+  var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  function top10(sharia, down) {
+    return data.stocks.filter(function (s) { return s.sharia === sharia && s[period] != null && (!down || s[period] < 0); })
+      .sort(function (a, b) { return down ? a[period] - b[period] : b[period] - a[period]; }).slice(0, 10);
+  }
+
+  var RULE = {
+    tomorrow: 'Rule: the 10 stocks in each group that fell the most over the last 5 trading days, betting on a bounce-back the next day.',
+    week: 'Rule: the 10 stocks in each group that fell the most over the last 20 trading days, betting on a bounce-back over the next 5 trading days.',
+    month: 'Rule: stocks that fell the most over the last 20 trading days, favouring those still above their 50-day average price, betting on a recovery over the next 21 trading days.'
+  };
+  var PERIOD = { tomorrow: 'the next trading day', week: 'the next 5 trading days', month: 'the next 21 trading days' };
+
+  function renderPredictions() {
+    document.querySelectorAll('#pred-seg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.horizon === horizon)); });
+    document.getElementById('pred-rule').textContent = RULE[horizon];
+    var track = document.getElementById('pred-track');
+    var p = data && data.predictions;
+    if (!p || !p.ready) {
+      track.textContent = p && p.sessions ? 'Collecting PSX price history (' + p.sessions + ' of 120 trading days so far). Predictions appear once there is enough history.' : 'Predictions are not available yet.';
+      document.querySelectorAll('table[data-pred] tbody').forEach(function (t) { t.replaceChildren(); });
+      return;
+    }
+    var m = p.models[horizon], bt = m.backtest;
+    track.replaceChildren();
+    if (bt && bt.tests) {
+      var good = bt.hit_rate >= 55;
+      track.append('Track record: from ' + day(bt.from) + ' to ' + day(bt.to) + ', ', el('strong', null, nf2.format(bt.hit_rate).replace(/\.?0+$/, '') + '%'),
+        ' of picks made by this rule did better than the typical stock in their group over ' + PERIOD[horizon] + ' (' + nf0.format(bt.tests) + ' test runs). Picking at random would score about 50%. ',
+        el('span', 'verdict' + (good ? ' good' : ''), good ? 'Somewhat better than chance so far.' : 'No better than chance so far.'));
+    }
+    document.querySelectorAll('table[data-pred]').forEach(function (t) {
+      var rows = (m.picks[t.dataset.pred] || []).map(function (s, i) {
+        var tr = el('tr');
+        tr.append(el('td', 'rank', i + 1), el('td', 'sym', s.symbol), el('td', 'co hide-narrow', s.name),
+          el('td', 'num ' + (s.chg5 > 0 ? 'up' : s.chg5 < 0 ? 'down' : ''), pct(s.chg5)),
+          el('td', 'num ' + (s.chg20 > 0 ? 'up' : s.chg20 < 0 ? 'down' : ''), pct(s.chg20)),
+          el('td', 'num', nf2.format(s.price)));
+        return tr;
+      });
+      t.querySelector('tbody').replaceChildren.apply(t.querySelector('tbody'), rows);
+    });
+  }
+
+  function render() {
+    renderPredictions();
+    document.querySelectorAll('.seg:not(#pred-seg) button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.period === period)); });
+    if (!data) return;
+    var mins = data.sync_minutes, ageMin = (Date.now() - new Date(data.synced_at)) / 60000, stale = ageMin > mins * 2;
+    document.querySelectorAll('.mins').forEach(function (e) { e.textContent = mins; });
+    var ago = ageMin < 1 ? 'just now' : Math.round(ageMin) === 1 ? '1 minute ago' : Math.round(ageMin) < 120 ? Math.round(ageMin) + ' minutes ago' : Math.round(ageMin / 60) + ' hours ago';
+    document.querySelectorAll('.last').forEach(function (e) { e.replaceChildren('Last synced ', el('strong', null, time(data.synced_at)), ' (' + ago + ')' + (stale ? ', overdue.' : '.')); });
+    var up = document.getElementById('updated');
+    up.replaceChildren(el('span', 'dot' + (stale ? ' stale' : '')), 'Last updated: ', el('strong', null, time(data.synced_at)), ' · ' + ago);
+    document.querySelectorAll('.dot').forEach(function (e) { e.classList.toggle('stale', stale); });
+    document.getElementById('dates').textContent = 'Prices for the session of ' + day(data.session_date) + '. ' +
+      (period === 'day' ? 'Compared with the previous close.' : 'Compared with the close of ' + day(period === 'week' ? data.week_base : data.month_base) + '.');
+
+    var vols = data.stocks.map(function (s) { return s[VOL[period]]; }).sort(function (a, b) { return a - b; });
+    var thin = vols.length ? vols[Math.floor(vols.length / 2)] / 4 : 0;
+
+    document.getElementById('fall-note').textContent = '(' + LABEL[period] + ')';
+    document.querySelectorAll('table[data-group]').forEach(function (t) {
+      var list = top10(t.dataset.group === 'sharia', t.dataset.dir === 'down');
+      var empty = t.closest('.card').querySelector('.empty');
+      if (empty) empty.hidden = list.length > 0;
+      var rows = list.map(function (s, i) {
+        var tr = el('tr');
+        var sym = el('td', 'sym', s.symbol);
+        if (s.corp_action && period !== 'day') sym.append(el('span', 'chip', s.corp_action));
+        var vol = el('td', 'num', nf0.format(s[VOL[period]]));
+        if (s[VOL[period]] < thin) vol.append(el('span', 'chip', 'thin'));
+        tr.append(el('td', 'rank', i + 1), sym, el('td', 'co hide-narrow', s.name),
+          el('td', 'num ' + (s[period] > 0 ? 'up' : s[period] < 0 ? 'down' : ''), pct(s[period])),
+          vol, el('td', 'num', nf2.format(s.price)));
+        return tr;
+      });
+      t.querySelector('tbody').replaceChildren.apply(t.querySelector('tbody'), rows);
+    });
+
+    var a = top10(true)[0], b = top10(false)[0], wa = top10(true, true)[0], wb = top10(false, true)[0], take = document.getElementById('takeaway');
+    take.replaceChildren();
+    if (a && b) {
+      take.append('Best Sharia-compliant performer ' + LABEL[period] + ': ', el('strong', null, a.symbol), ' ',
+        el('span', a[period] >= 0 ? 'up' : 'down', pct(a[period]) + '%'), '. Best non-Sharia: ',
+        el('strong', null, b.symbol), ' ', el('span', b[period] >= 0 ? 'up' : 'down', pct(b[period]) + '%'), '.');
+      if (wa || wb) {
+        take.append(' Biggest fall: ');
+        if (wa) take.append(el('strong', null, wa.symbol), ' ', el('span', 'down', pct(wa[period]) + '%'), ' (Sharia)');
+        if (wa && wb) take.append(', ');
+        if (wb) take.append(el('strong', null, wb.symbol), ' ', el('span', 'down', pct(wb[period]) + '%'), ' (non-Sharia)');
+        take.append('.');
+      }
+    }
+  }
+
+  function load() {
+    return fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { data = d; render(); return d; })
+      .catch(function () {
+        var t = document.getElementById('takeaway');
+        t.textContent = 'No data yet. The first sync may still be running; this page will try again shortly.';
+        t.className = 'take err';
+      });
+  }
+
+  // If no cron job has refreshed the data in time, ask the server to sync (it only does so when the data is old).
+  function syncIfOld() {
+    var mins = data ? data.sync_minutes : 5;
+    if (data && (Date.now() - new Date(data.synced_at)) / 60000 < mins) return Promise.resolve();
+    return fetch('sync.php?auto=1', { cache: 'no-store' }).then(load).catch(function () {});
+  }
+
+  document.querySelectorAll('.seg:not(#pred-seg) button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      period = b.dataset.period;
+      try { localStorage.setItem('psx-period', period); } catch (e) {}
+      render();
+    });
+  });
+
+  document.querySelectorAll('#pred-seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      horizon = b.dataset.horizon;
+      try { localStorage.setItem('psx-horizon', horizon); } catch (e) {}
+      renderPredictions();
+    });
+  });
+
+  render();
+  load().then(syncIfOld);
+  setInterval(function () { load().then(syncIfOld); }, 60000);  // check for fresh data every minute
+  setInterval(render, 20000);  // keep the 'minutes ago' text current
+})();
+</script>
+</body>
+</html>
