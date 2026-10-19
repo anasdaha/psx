@@ -69,6 +69,19 @@
   .track strong { font-variant-numeric: tabular-nums; }
   .track .verdict { font-weight: 600; color: var(--warn); }
   .track .verdict.good { color: var(--up); }
+  .score { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .bar { width: 44px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .factors { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 14px; max-width: 80ch; }
+  .factors h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+  .factors ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .factors li { display: flex; gap: 10px; align-items: baseline; }
+  .factors .w { flex: none; width: 62px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .factors li.off { color: var(--muted); text-decoration: line-through; }
+  .stock-name { font-weight: 400; white-space: normal; font-size: 12px; line-height: 1.3; min-width: 9em; }
+  table[data-pred] th { white-space: normal; }
+  @media (max-width: 1240px) { .hide-mid { display: none; } }
+  @media (max-width: 560px) { .bar { display: none; } .stock-name { min-width: 7em; } }
   .disclaimer-foot { margin: 0; font-size: 13px; color: var(--warn); font-weight: 500; }
   @media (max-width: 560px) { .hide-narrow { display: none; } }
 </style>
@@ -125,7 +138,7 @@
       <div class="icon" aria-hidden="true">!</div>
       <div>
         <h3>These are predictions only. There is no guarantee.</h3>
-        <p>Nobody can reliably predict share prices. These picks come from a simple rule applied to past PSX prices, and the track record below shows how often that rule has actually been right. They are not investment advice or a recommendation to buy or sell.</p>
+        <p>Nobody can reliably predict share prices. These picks come from a score built on past PSX prices, and the track record below shows how often it has actually been right. They are not investment advice or a recommendation to buy or sell.</p>
         <p><strong>Do your own research and plan your investments according to your own situation.</strong> You can lose money in the stock market.</p>
       </div>
     </div>
@@ -135,6 +148,7 @@
       <button type="button" data-horizon="month">Within a month</button>
     </div>
     <p class="rule" id="pred-rule"></p>
+    <div class="factors" id="pred-factors"></div>
     <p class="track" id="pred-track">Loading track record…</p>
   </section>
 
@@ -142,12 +156,12 @@
     <section class="card">
       <h2>Sharia-compliant picks</h2>
       <p class="note">KSE-100 stocks in the KMI All Share index, trading at least 50,000 shares a day.</p>
-      <div class="scroll"><table data-pred="sharia"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Last 5 days (%)</th><th class="num">Last 20 days (%)</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+      <div class="scroll"><table data-pred="sharia"><thead><tr><th>#</th><th>Stock</th><th class="num">Score</th><th class="num">5-day %</th><th class="num hide-narrow" title="How far below its highest price of the past year">From high %</th><th class="num hide-mid" title="Average gap between the day's high and low, last 20 days">Swing %</th><th class="num">Price</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section class="card">
       <h2>Non-Sharia picks</h2>
       <p class="note">KSE-100 stocks outside the KMI All Share index, trading at least 50,000 shares a day.</p>
-      <div class="scroll"><table data-pred="conv"><thead><tr><th>#</th><th>Symbol</th><th class="hide-narrow">Company</th><th class="num">Last 5 days (%)</th><th class="num">Last 20 days (%)</th><th class="num">Price (Rs)</th></tr></thead><tbody></tbody></table></div>
+      <div class="scroll"><table data-pred="conv"><thead><tr><th>#</th><th>Stock</th><th class="num">Score</th><th class="num">5-day %</th><th class="num hide-narrow" title="How far below its highest price of the past year">From high %</th><th class="num hide-mid" title="Average gap between the day's high and low, last 20 days">Swing %</th><th class="num">Price</th></tr></thead><tbody></tbody></table></div>
     </section>
   </div>
   <p class="disclaimer-foot">Reminder: predictions only, no guarantee. Do your own research before you buy or sell.</p>
@@ -160,7 +174,9 @@
       <li>During market hours the price is PSX's latest traded price at the last sync, so it moves until the close.</li>
       <li>Volume is shares traded over the same period. A "thin" tag means volume was under a quarter of the typical KSE-100 stock for that period, so the move rests on few trades.</li>
       <li>An "XD" tag means the stock went ex-dividend in the period. Prices are not adjusted, so its Week or Month change is understated by the dividend.</li>
-      <li>Predictions use one rule per period, chosen by testing 20 simple rules on 13 months of PSX prices (Sep 2025 to Oct 2026). Rules that buy recent winners did worse than average on PSX. Rules that buy recent fallers did slightly better, but only slightly. The track record shown with the picks is recalculated every day on the past year of data.</li>
+      <li>Predictions use a multi-factor score. Twenty factors were tested on 13 months of PSX prices (Sep 2025 to Oct 2026), and five were kept: low volatility, small daily ranges, a recent fall compared with the sector, no recent one-day spike, and closeness to the 52-week high. Buying recent winners (momentum) and following trends did not work on PSX, so the score does not use them.</li>
+      <li>Each factor is ranked within the stock's group (Sharia or non-Sharia), and the score is the weighted average of those ranks, shown from 0 to 100. Swing is the average gap between a day's high and low, as a share of the price, over the last 20 days. "From high" is how far the price is below its highest point of the past year.</li>
+      <li>The track record shown with the picks is recalculated every day on the past year of data. The score's edge is small: its picks beat the typical stock a little more often than chance, but their average return is close to the group average.</li>
       <li>The track record uses today's KSE-100 members, so it leaves out companies that dropped out of the index. That makes past results look a little better than they really were.</li>
       <li>Nothing here is a buy or sell recommendation.</li>
     </ul>
@@ -189,36 +205,60 @@
   }
 
   var RULE = {
-    tomorrow: 'Rule: the 10 stocks in each group that fell the most over the last 5 trading days, betting on a bounce-back the next day.',
-    week: 'Rule: the 10 stocks in each group that fell the most over the last 20 trading days, betting on a bounce-back over the next 5 trading days.',
-    month: 'Rule: stocks that fell the most over the last 20 trading days, favouring those still above their 50-day average price, betting on a recovery over the next 21 trading days.'
+    tomorrow: 'Each stock gets a score from 0 to 100 that combines five factors, compared only with the other stocks in its group. These are the 10 highest scores for the next trading day, where a short bounce-back after a fall counts for most.',
+    week: 'Each stock gets a score from 0 to 100 that combines five factors, compared only with the other stocks in its group. These are the 10 highest scores for the next 5 trading days, favouring calm stocks near their highs that dipped recently.',
+    month: 'Each stock gets a score from 0 to 100 that combines five factors, compared only with the other stocks in its group. These are the 10 highest scores for the next 21 trading days, where calm, steady stocks near their 52-week high count for most.'
   };
+  var FACTOR = [
+    ['calm', 'Calm', 'small day-to-day price moves over the last 60 trading days'],
+    ['steady', 'Steady', 'small gap between each day\'s high and low over the last 20 days'],
+    ['bounce', 'Bounce-back', 'fell more than its sector over the last 5 days'],
+    ['nospike', 'No spike', 'no single big jump in the last 20 days (stocks after a spike tend to lag)'],
+    ['high', 'Near high', 'close to its highest price of the past year']
+  ];
+  var WEIGHT = function (w) { return w >= 1 ? 'full' : w > 0 ? 'half' : 'not used'; };
   var PERIOD = { tomorrow: 'the next trading day', week: 'the next 5 trading days', month: 'the next 21 trading days' };
 
   function renderPredictions() {
     document.querySelectorAll('#pred-seg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.horizon === horizon)); });
     document.getElementById('pred-rule').textContent = RULE[horizon];
-    var track = document.getElementById('pred-track');
+    var track = document.getElementById('pred-track'), factors = document.getElementById('pred-factors');
     var p = data && data.predictions;
     if (!p || !p.ready) {
+      factors.hidden = true;
       track.textContent = p && p.sessions ? 'Collecting PSX price history (' + p.sessions + ' of 120 trading days so far). Predictions appear once there is enough history.' : 'Predictions are not available yet.';
       document.querySelectorAll('table[data-pred] tbody').forEach(function (t) { t.replaceChildren(); });
       return;
     }
     var m = p.models[horizon], bt = m.backtest;
+    factors.hidden = false;
+    factors.replaceChildren(el('h3', null, 'What the score looks for (weight for this period)'));
+    var ul = el('ul');
+    FACTOR.forEach(function (f) {
+      var w = m.weights ? m.weights[f[0]] : 1, li = el('li', w ? null : 'off');
+      li.append(el('span', 'w', WEIGHT(w)), el('span', null, null));
+      li.lastChild.append(el('strong', null, f[1]), ': ' + f[2] + '.');
+      ul.append(li);
+    });
+    factors.append(ul);
     track.replaceChildren();
     if (bt && bt.tests) {
-      var good = bt.hit_rate >= 55;
+      var verdict = bt.hit_rate >= 56 ? ['good', 'Better than chance so far.'] : bt.hit_rate >= 52 ? ['good', 'Slightly better than chance so far.'] : ['', 'No better than chance so far.'];
       track.append('Track record: from ' + day(bt.from) + ' to ' + day(bt.to) + ', ', el('strong', null, nf2.format(bt.hit_rate).replace(/\.?0+$/, '') + '%'),
-        ' of picks made by this rule did better than the typical stock in their group over ' + PERIOD[horizon] + ' (' + nf0.format(bt.tests) + ' test runs). Picking at random would score about 50%. ',
-        el('span', 'verdict' + (good ? ' good' : ''), good ? 'Somewhat better than chance so far.' : 'No better than chance so far.'));
+        ' of picks did better than the typical stock in their group over ' + PERIOD[horizon] + ' (' + nf0.format(bt.tests) + ' test runs). Picking at random would score about 50%. ',
+        el('span', 'verdict ' + verdict[0], verdict[1]),
+        ' On average the picks returned ', el('strong', null, pct(bt.avg_edge) + '%'), ' compared with their group, so the score mostly helps avoid losers rather than find big winners.');
     }
     document.querySelectorAll('table[data-pred]').forEach(function (t) {
       var rows = (m.picks[t.dataset.pred] || []).map(function (s, i) {
         var tr = el('tr');
-        tr.append(el('td', 'rank', i + 1), el('td', 'sym', s.symbol), el('td', 'co hide-narrow', s.name),
+        var score = el('td', 'num'), wrap = el('span', 'score'), bar = el('span', 'bar'), fill = el('i');
+        fill.style.width = s.score + '%'; bar.append(fill); wrap.append(bar, String(s.score)); score.append(wrap);
+        var stock = el('td', 'sym', s.symbol); stock.append(el('div', 'co stock-name', s.name));
+        tr.append(el('td', 'rank', i + 1), stock, score,
           el('td', 'num ' + (s.chg5 > 0 ? 'up' : s.chg5 < 0 ? 'down' : ''), pct(s.chg5)),
-          el('td', 'num ' + (s.chg20 > 0 ? 'up' : s.chg20 < 0 ? 'down' : ''), pct(s.chg20)),
+          el('td', 'num hide-narrow', s.off_high != null ? pct(s.off_high) : '–'),
+          el('td', 'num hide-mid', s.range != null ? nf2.format(s.range) : '–'),
           el('td', 'num', nf2.format(s.price)));
         return tr;
       });

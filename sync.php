@@ -92,7 +92,9 @@ function parse_day($path) {
     foreach (preg_split('/\r?\n/', $text) as $line) {
         $p = explode('|', $line);
         if (count($p) < 10) continue;
-        $rows[$p[1]] = ['name' => trim($p[3]), 'close' => (float)$p[7], 'volume' => (int)$p[8], 'ldcp' => (float)$p[9]];
+        // Fields: date|symbol|sector|name|open|high|low|close|volume|ldcp
+        $rows[$p[1]] = ['name' => trim($p[3]), 'sector' => $p[2], 'open' => (float)$p[4], 'high' => (float)$p[5], 'low' => (float)$p[6],
+                        'close' => (float)$p[7], 'volume' => (int)$p[8], 'ldcp' => (float)$p[9]];
     }
     return $rows;
 }
