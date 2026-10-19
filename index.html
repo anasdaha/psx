@@ -82,7 +82,10 @@
   .method { margin: 0; padding-left: 1.2em; color: var(--muted); font-size: 13px; max-width: 85ch; }
   .method li + li { margin-top: 4px; }
   .err { color: var(--down); }
-  .sub { margin: 4px 0 -4px; font-size: 20px; font-weight: 600; }
+  .sub { margin: 0; font-size: clamp(20px, 2.6vw, 24px); font-weight: 600; }
+  .block { display: flex; flex-direction: column; gap: 10px; }
+  .block .seg { margin-top: 2px; }
+  #fallers { padding-top: 12px; border-top: 2px solid var(--line); }
   .sub-note { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 6px; }
   .pred-head { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; border-top: 2px solid var(--line); }
   .pred-head h2 { margin: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 600; }
@@ -138,7 +141,7 @@
   <nav class="menu" id="site-menu" aria-label="Sections" hidden>
     <div class="wrap"><ul>
       <li><a href="#gainers"><span class="ico up" aria-hidden="true">▲</span><span><strong>Top performers</strong><small>Biggest gainers, Sharia and non-Sharia</small></span></a></li>
-      <li><a href="#fallers"><span class="ico down" aria-hidden="true">▼</span><span><strong>Top losses</strong><small>Biggest fallers for the same period</small></span></a></li>
+      <li><a href="#fallers"><span class="ico down" aria-hidden="true">▼</span><span><strong>Top losses</strong><small>Biggest fallers, with their own period filter</small></span></a></li>
       <li><a href="#predictions"><span class="ico" aria-hidden="true">◆</span><span><strong>Predictions</strong><small>Scored picks with their track record</small></span></a></li>
       <li><a href="#past"><span class="ico" aria-hidden="true">↺</span><span><strong>Past predictions</strong><small>What we picked before and how it did</small></span></a></li>
       <li><a href="#method"><span class="ico" aria-hidden="true">i</span><span><strong>How it works</strong><small>Data sources and method</small></span></a></li>
@@ -166,18 +169,20 @@
 </section>
 
 <main class="wrap">
-  <div>
-    <p class="take" id="takeaway">Loading prices…</p>
-    <p class="dates" id="dates"></p>
+  <div class="block">
+    <h2 class="sub" id="gainers">Top performers</h2>
+    <div>
+      <p class="take" id="takeaway">Loading prices…</p>
+      <p class="dates" data-dates="up"></p>
+    </div>
+    <div class="seg" role="group" aria-label="Top performers period" data-sec="up">
+      <button type="button" data-period="day">Today</button>
+      <button type="button" data-period="week">Week</button>
+      <button type="button" data-period="month">Month</button>
+    </div>
   </div>
 
-  <div class="seg" role="group" aria-label="Period">
-    <button type="button" data-period="day">Today</button>
-    <button type="button" data-period="week">Week</button>
-    <button type="button" data-period="month">Month</button>
-  </div>
-
-  <div class="grid" id="gainers">
+  <div class="grid">
     <section class="card">
       <h2>Sharia-compliant gainers</h2>
       <p class="note">KSE-100 stocks that are also in PSX's KMI All Share index.</p>
@@ -190,7 +195,19 @@
     </section>
   </div>
 
-  <h2 class="sub" id="fallers">Biggest fallers <span class="sub-note" id="fall-note"></span></h2>
+  <div class="block">
+    <h2 class="sub" id="fallers">Biggest fallers</h2>
+    <div>
+      <p class="take" id="takeaway-down">Loading prices…</p>
+      <p class="dates" data-dates="down"></p>
+    </div>
+    <div class="seg" role="group" aria-label="Biggest fallers period" data-sec="down">
+      <button type="button" data-period="day">Today</button>
+      <button type="button" data-period="week">Week</button>
+      <button type="button" data-period="month">Month</button>
+    </div>
+  </div>
+
   <div class="grid">
     <section class="card">
       <h2>Sharia-compliant fallers</h2>
@@ -280,9 +297,9 @@
 
 <script>
 (function () {
-  var data = null, period = 'day', horizon = 'tomorrow';
+  var data = null, periods = { up: 'day', down: 'day' }, horizon = 'tomorrow';
   try { horizon = localStorage.getItem('psx-horizon') || 'tomorrow'; } catch (e) {}
-  try { period = localStorage.getItem('psx-period') || 'day'; } catch (e) {}
+  try { periods.up = localStorage.getItem('psx-period') || 'day'; periods.down = localStorage.getItem('psx-period-down') || 'day'; } catch (e) {}
   var LABEL = { day: 'today', week: 'this week', month: 'this month' };
   var VOL = { day: 'vol_day', week: 'vol_week', month: 'vol_month' };
   var nf2 = new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -293,6 +310,7 @@
   var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
   function top10(sharia, down) {
+    var period = periods[down ? 'down' : 'up'];
     return data.stocks.filter(function (s) { return s.sharia === sharia && s[period] != null && (!down || s[period] < 0); })
       .sort(function (a, b) { return down ? a[period] - b[period] : b[period] - a[period]; }).slice(0, 10);
   }
@@ -461,7 +479,7 @@
 
   function render() {
     renderPredictions();
-    document.querySelectorAll('.seg:not(#pred-seg) button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.period === period)); });
+    document.querySelectorAll('.seg[data-sec] button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.period === periods[b.parentNode.dataset.sec])); });
     if (!data) return;
     var mins = data.sync_minutes, ageMin = (Date.now() - new Date(data.synced_at)) / 60000, stale = ageMin > mins * 2;
     document.querySelectorAll('.mins').forEach(function (e) { e.textContent = mins; });
@@ -470,15 +488,20 @@
     var up = document.getElementById('updated');
     up.replaceChildren(el('span', 'dot' + (stale ? ' stale' : '')), 'Last updated: ', el('strong', null, time(data.synced_at)), ' · ' + ago);
     document.querySelectorAll('.dot').forEach(function (e) { e.classList.toggle('stale', stale); });
-    document.getElementById('dates').textContent = 'Prices for the session of ' + day(data.session_date) + '. ' +
-      (period === 'day' ? 'Compared with the previous close.' : 'Compared with the close of ' + day(period === 'week' ? data.week_base : data.month_base) + '.');
+    document.querySelectorAll('[data-dates]').forEach(function (e) {
+      var period = periods[e.dataset.dates];
+      e.textContent = 'Prices for the session of ' + day(data.session_date) + '. ' +
+        (period === 'day' ? 'Compared with the previous close.' : 'Compared with the close of ' + day(period === 'week' ? data.week_base : data.month_base) + '.');
+    });
 
-    var vols = data.stocks.map(function (s) { return s[VOL[period]]; }).sort(function (a, b) { return a - b; });
-    var thin = vols.length ? vols[Math.floor(vols.length / 2)] / 4 : 0;
+    var thinFor = function (period) {
+      var vols = data.stocks.map(function (s) { return s[VOL[period]]; }).sort(function (a, b) { return a - b; });
+      return vols.length ? vols[Math.floor(vols.length / 2)] / 4 : 0;
+    };
 
-    document.getElementById('fall-note').textContent = '(' + LABEL[period] + ')';
     document.querySelectorAll('table[data-group]').forEach(function (t) {
-      var list = top10(t.dataset.group === 'sharia', t.dataset.dir === 'down');
+      var down = t.dataset.dir === 'down', period = periods[down ? 'down' : 'up'], thin = thinFor(period);
+      var list = top10(t.dataset.group === 'sharia', down);
       var empty = t.closest('.card').querySelector('.empty');
       if (empty) empty.hidden = list.length > 0;
       var rows = list.map(function (s, i) {
@@ -495,20 +518,25 @@
       t.querySelector('tbody').replaceChildren.apply(t.querySelector('tbody'), rows);
     });
 
-    var a = top10(true)[0], b = top10(false)[0], wa = top10(true, true)[0], wb = top10(false, true)[0], take = document.getElementById('takeaway');
+    var count = function (period, test) { return data.stocks.filter(function (s) { return s[period] != null && test(s[period]); }).length; };
+    var move = function (s, period) { return [el('strong', null, s.symbol), ' ', el('span', s[period] >= 0 ? 'up' : 'down', pct(s[period]) + '%')]; };
+
+    var pu = periods.up, a = top10(true)[0], b = top10(false)[0], take = document.getElementById('takeaway');
     take.replaceChildren();
+    take.className = 'take';
     if (a && b) {
-      take.append('Best Sharia-compliant performer ' + LABEL[period] + ': ', el('strong', null, a.symbol), ' ',
-        el('span', a[period] >= 0 ? 'up' : 'down', pct(a[period]) + '%'), '. Best non-Sharia: ',
-        el('strong', null, b.symbol), ' ', el('span', b[period] >= 0 ? 'up' : 'down', pct(b[period]) + '%'), '.');
-      if (wa || wb) {
-        take.append(' Biggest fall: ');
-        if (wa) take.append(el('strong', null, wa.symbol), ' ', el('span', 'down', pct(wa[period]) + '%'), ' (Sharia)');
-        if (wa && wb) take.append(', ');
-        if (wb) take.append(el('strong', null, wb.symbol), ' ', el('span', 'down', pct(wb[period]) + '%'), ' (non-Sharia)');
-        take.append('.');
-      }
+      take.append('Best Sharia-compliant performer ' + LABEL[pu] + ': '); take.append.apply(take, move(a, pu));
+      take.append('. Best non-Sharia: '); take.append.apply(take, move(b, pu));
+      take.append('. ', el('strong', null, count(pu, function (v) { return v > 0; }) + ' of ' + data.stocks.length), ' KSE-100 stocks are up ' + LABEL[pu] + '.');
     }
+
+    var pd = periods.down, wa = top10(true, true)[0], wb = top10(false, true)[0], takeDown = document.getElementById('takeaway-down');
+    takeDown.replaceChildren();
+    if (wa) { takeDown.append('Biggest Sharia-compliant fall ' + LABEL[pd] + ': '); takeDown.append.apply(takeDown, move(wa, pd)); takeDown.append('. '); }
+    else takeDown.append('No Sharia-compliant stock is down ' + LABEL[pd] + '. ');
+    if (wb) { takeDown.append('Biggest non-Sharia fall: '); takeDown.append.apply(takeDown, move(wb, pd)); takeDown.append('. '); }
+    else takeDown.append('No non-Sharia stock is down ' + LABEL[pd] + '. ');
+    takeDown.append(el('strong', null, count(pd, function (v) { return v < 0; }) + ' of ' + data.stocks.length), ' KSE-100 stocks are down ' + LABEL[pd] + '.');
   }
 
   function load() {
@@ -529,10 +557,11 @@
     return fetch('sync.php?auto=1', { cache: 'no-store' }).then(load).catch(function () {});
   }
 
-  document.querySelectorAll('.seg:not(#pred-seg) button').forEach(function (b) {
+  document.querySelectorAll('.seg[data-sec] button').forEach(function (b) {
     b.addEventListener('click', function () {
-      period = b.dataset.period;
-      try { localStorage.setItem('psx-period', period); } catch (e) {}
+      var sec = b.parentNode.dataset.sec;
+      periods[sec] = b.dataset.period;
+      try { localStorage.setItem(sec === 'up' ? 'psx-period' : 'psx-period-down', periods[sec]); } catch (e) {}
       render();
     });
   });
