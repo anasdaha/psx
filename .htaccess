@@ -4,7 +4,8 @@
 </FilesMatch>
 RedirectMatch 403 /cache/
 <IfModule mod_headers.c>
-  <Files "data.json">
+  # data.json and the history/ files change on every sync
+  <FilesMatch "\.json$">
     Header set Cache-Control "no-cache"
-  </Files>
+  </FilesMatch>
 </IfModule>

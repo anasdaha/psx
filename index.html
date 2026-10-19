@@ -109,6 +109,19 @@
   table[data-pred] th { white-space: normal; }
   @media (max-width: 1240px) { .hide-mid { display: none; } }
   @media (max-width: 560px) { .bar { display: none; } .stock-name { min-width: 7em; } }
+  .past-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px 16px; }
+  .past-head .note { margin-bottom: 0; max-width: 70ch; }
+  .past-nav { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); max-width: 100%; }
+  .past-nav button, .past-nav select { font: inherit; color: var(--fg); background: transparent; border: 0; padding: 7px 12px; }
+  .past-nav button { cursor: pointer; font-size: 18px; line-height: 1; }
+  .past-nav button:disabled { color: var(--line); cursor: default; }
+  .past-nav select { border-inline: 1px solid var(--line); min-width: 0; max-width: 72vw; cursor: pointer; }
+  .past-nav :focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+  .past-status { margin: 14px 0 4px; font-size: 14px; max-width: 85ch; }
+  .past-grid { margin-top: 8px; }
+  .past-grid h3 { margin: 6px 0 4px; font-size: 15px; font-weight: 600; }
+  .past-grid .tally { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .mark { font-family: var(--sans); font-weight: 600; margin-left: 6px; }
   .disclaimer-foot { margin: 0; font-size: 13px; color: var(--warn); font-weight: 500; }
   @media (max-width: 560px) { .hide-narrow { display: none; } }
 </style>
@@ -127,6 +140,7 @@
       <li><a href="#gainers"><span class="ico up" aria-hidden="true">▲</span><span><strong>Top performers</strong><small>Biggest gainers, Sharia and non-Sharia</small></span></a></li>
       <li><a href="#fallers"><span class="ico down" aria-hidden="true">▼</span><span><strong>Top losses</strong><small>Biggest fallers for the same period</small></span></a></li>
       <li><a href="#predictions"><span class="ico" aria-hidden="true">◆</span><span><strong>Predictions</strong><small>Scored picks with their track record</small></span></a></li>
+      <li><a href="#past"><span class="ico" aria-hidden="true">↺</span><span><strong>Past predictions</strong><small>What we picked before and how it did</small></span></a></li>
       <li><a href="#method"><span class="ico" aria-hidden="true">i</span><span><strong>How it works</strong><small>Data sources and method</small></span></a></li>
     </ul></div>
   </nav>
@@ -224,6 +238,24 @@
       <div class="scroll"><table data-pred="conv"><thead><tr><th>#</th><th>Stock</th><th class="num">Score</th><th class="num">5-day %</th><th class="num hide-narrow" title="How far below its highest price of the past year">From high %</th><th class="num hide-mid" title="Average gap between the day's high and low, last 20 days">Swing %</th><th class="num">Price</th></tr></thead><tbody></tbody></table></div>
     </section>
   </div>
+  <section class="card" id="past">
+    <div class="past-head">
+      <div>
+        <h2>Past predictions</h2>
+        <p class="note" id="past-record">Loading saved predictions…</p>
+      </div>
+      <div class="past-nav" id="past-nav" hidden>
+        <button type="button" id="past-older" aria-label="Older prediction">‹</button>
+        <select id="past-day" aria-label="Prediction day"></select>
+        <button type="button" id="past-newer" aria-label="Newer prediction">›</button>
+      </div>
+    </div>
+    <p class="past-status" id="past-status"></p>
+    <div class="grid past-grid" id="past-grid" hidden>
+      <div><h3>Sharia-compliant picks <span class="tally" data-tally="sharia"></span></h3><div class="scroll"><table data-past="sharia"><thead><tr><th>#</th><th>Stock</th><th class="num hide-narrow">Score then</th><th class="num hide-narrow">Price then</th><th class="num" data-chg>Change %</th><th class="num">vs typical</th></tr></thead><tbody></tbody></table></div></div>
+      <div><h3>Non-Sharia picks <span class="tally" data-tally="conv"></span></h3><div class="scroll"><table data-past="conv"><thead><tr><th>#</th><th>Stock</th><th class="num hide-narrow">Score then</th><th class="num hide-narrow">Price then</th><th class="num" data-chg>Change %</th><th class="num">vs typical</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+  </section>
   <p class="disclaimer-foot">Reminder: predictions only, no guarantee. Do your own research before you buy or sell.</p>
 
   <section class="card" id="method">
@@ -237,6 +269,7 @@
       <li>Predictions use a multi-factor score. Twenty factors were tested on 13 months of PSX prices (Sep 2025 to Oct 2026), and five were kept: low volatility, small daily ranges, a recent fall compared with the sector, no recent one-day spike, and closeness to the 52-week high. Buying recent winners (momentum) and following trends did not work on PSX, so the score does not use them.</li>
       <li>Each factor is ranked within the stock's group (Sharia or non-Sharia), and the score is the weighted average of those ranks, shown from 0 to 100. Swing is the average gap between a day's high and low, as a share of the price, over the last 20 days. "From high" is how far the price is below its highest point of the past year.</li>
       <li>The track record shown with the picks is recalculated every day on the past year of data. The score's edge is small: its picks beat the typical stock a little more often than chance, but their average return is close to the group average.</li>
+      <li>Every prediction is saved, one file per trading day, and kept for 90 days. The version saved after the close is the final one. Once its period has passed (1, 5 or 21 trading days), each pick is graded on PSX closing prices with the same test as the track record: did it beat the typical (median) stock in its group? Until then, Past predictions shows results so far from the latest prices.</li>
       <li>The track record uses today's KSE-100 members, so it leaves out companies that dropped out of the index. That makes past results look a little better than they really were.</li>
       <li>Nothing here is a buy or sell recommendation.</li>
     </ul>
@@ -279,6 +312,105 @@
   var WEIGHT = function (w) { return w >= 1 ? 'full' : w > 0 ? 'half' : 'not used'; };
   var PERIOD = { tomorrow: 'the next trading day', week: 'the next 5 trading days', month: 'the next 21 trading days' };
 
+  var hist = null, histDays = {}, pastDate = null;
+  var HSTEPS = { tomorrow: 1, week: 5, month: 21 };
+  var short = function (s) { return new Date(s + 'T00:00:00+05:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Karachi' }); };
+
+  function pastList() {
+    var current = data && data.predictions && data.predictions.based_on;
+    return hist ? hist.days.filter(function (d) { return d.date !== current; }) : [];
+  }
+
+  function renderPast() {
+    var rec = document.getElementById('past-record'), status = document.getElementById('past-status');
+    var nav = document.getElementById('past-nav'), grid = document.getElementById('past-grid'), sel = document.getElementById('past-day');
+    var days = pastList();
+    if (!hist) { rec.textContent = 'Saved predictions will appear here after the next sync.'; nav.hidden = grid.hidden = true; status.textContent = ''; return; }
+    var lr = hist.live_record && hist.live_record[horizon];
+    rec.replaceChildren();
+    if (lr && lr.days) {
+      rec.append('Live record for this period: ', el('strong', null, nf0.format(lr.days) + ' graded ' + (lr.days === 1 ? 'day' : 'days')), ', ',
+        el('strong', null, nf2.format(lr.hit_rate).replace(/\.?0+$/, '') + '%'), ' of ' + nf0.format(lr.picks) + ' picks beat the typical stock in their group, average ',
+        el('strong', null, pct(lr.avg_edge) + '%'), ' compared with their group. Unlike the back-test, these are real predictions made in advance.');
+    } else {
+      rec.textContent = 'No graded predictions for this period yet. The first result comes ' + (HSTEPS[horizon] === 1 ? 'after the next trading day' : HSTEPS[horizon] + ' trading days after the first saved prediction') + '.';
+    }
+    if (!days.length) { nav.hidden = grid.hidden = true; status.textContent = 'Predictions are saved after every sync. Earlier days appear here from the next trading day.'; return; }
+    if (!days.some(function (d) { return d.date === pastDate; })) pastDate = days[0].date;
+    nav.hidden = false;
+    sel.replaceChildren.apply(sel, days.map(function (d, i) {
+      var r = d.results[horizon], tag = r.status === 'done' ? (r.hit_rate != null ? r.hit_rate + '% beat' : 'graded') : 'in progress';
+      var o = el('option', null, (i === 0 ? 'Last' : (i + 1) + ' days ago') + ' · ' + short(d.date) + ' · ' + tag);
+      o.value = d.date; o.selected = d.date === pastDate; return o;
+    }));
+    var idx = days.findIndex(function (d) { return d.date === pastDate; });
+    document.getElementById('past-older').disabled = idx >= days.length - 1;
+    document.getElementById('past-newer').disabled = idx <= 0;
+    var snap = histDays[pastDate];
+    if (!snap) { status.textContent = 'Loading…'; grid.hidden = true; loadDay(pastDate, days[idx].made_at); return; }
+    renderPastDay(snap);
+  }
+
+  function renderPastDay(snap) {
+    var status = document.getElementById('past-status'), grid = document.getElementById('past-grid');
+    var o = snap.outcomes && snap.outcomes[horizon], done = o && o.status === 'done';
+    var now = {};
+    data.stocks.forEach(function (s) { now[s.symbol] = s.price; });
+    status.replaceChildren('Picked on ', el('strong', null, day(snap.date)), ' for ' + PERIOD[horizon] + '. ');
+    if (done) {
+      var parts = ['sharia', 'conv'].filter(function (g) { return o.hits[g]; }).map(function (g) { return o.hits[g][0] + ' of ' + o.hits[g][1] + (g === 'sharia' ? ' Sharia' : ' non-Sharia') + ' picks'; });
+      status.append('Final result at the close on ', el('strong', null, day(o.end_date)), ': ' + parts.join(' and ') + ' beat the typical stock in their group.');
+    } else {
+      var k = o ? o.sessions_done : 0;
+      status.append(el('strong', null, 'In progress'), ': ' + k + ' of ' + HSTEPS[horizon] + ' trading ' + (HSTEPS[horizon] === 1 ? 'day' : 'days') + ' done. Figures are so far, from the latest prices, and become final after trading day ' + HSTEPS[horizon] + '.');
+    }
+    grid.hidden = false;
+    document.querySelectorAll('table[data-past]').forEach(function (t) {
+      var g = t.dataset.past, picks = (snap.picks[horizon] || {})[g] || [], scores = (snap.scores[horizon] || {})[g] || {};
+      t.querySelector('[data-chg]').textContent = done ? 'Change %' : 'So far %';
+      var ret = {}, median;
+      if (done) {
+        ret = o.returns[g] || {}; median = o.group_median[g];
+      } else {
+        var all = Object.keys(scores).filter(function (s) { return now[s] && snap.prices[s]; }).map(function (s) { return (now[s] / snap.prices[s] - 1) * 100; }).sort(function (a, b) { return a - b; });
+        median = all.length ? (all.length % 2 ? all[(all.length - 1) / 2] : (all[all.length / 2 - 1] + all[all.length / 2]) / 2) : null;
+        picks.forEach(function (s) { if (now[s] && snap.prices[s]) ret[s] = (now[s] / snap.prices[s] - 1) * 100; });
+      }
+      var beat = 0, counted = 0;
+      var rows = picks.map(function (s, i) {
+        var r = ret[s], vs = r != null && median != null ? r - median : null;
+        if (vs != null) { counted++; if (vs > 0) beat++; }
+        var tr = el('tr');
+        var vsCell = el('td', 'num ' + (vs > 0 ? 'up' : vs < 0 ? 'down' : ''), vs != null ? pct(vs) : '–');
+        if (vs != null) vsCell.append(el('span', 'mark', vs > 0 ? '✓' : '✗'));
+        tr.append(el('td', 'rank', i + 1), el('td', 'sym', s), el('td', 'num hide-narrow', scores[s] != null ? String(scores[s]) : '–'),
+          el('td', 'num hide-narrow', snap.prices[s] ? nf2.format(snap.prices[s]) : '–'),
+          el('td', 'num ' + (r > 0 ? 'up' : r < 0 ? 'down' : ''), r != null ? pct(r) : '–'), vsCell);
+        return tr;
+      });
+      t.querySelector('tbody').replaceChildren.apply(t.querySelector('tbody'), rows);
+      document.querySelector('[data-tally="' + g + '"]').textContent = counted ? beat + ' of ' + counted + ' beat the typical stock' + (done ? '' : ' so far') + (median != null ? ' (typical: ' + pct(median) + '%)' : '') : '';
+    });
+  }
+
+  function loadDay(date, madeAt) {
+    fetch('history/' + date + '.json?v=' + encodeURIComponent(madeAt), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (snap) { histDays[date] = snap; if (date === pastDate && data) renderPast(); })
+      .catch(function () { document.getElementById('past-status').textContent = 'Could not load the saved prediction for ' + day(date) + '.'; });
+  }
+
+  function loadHistory() {
+    return fetch('history/index.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (h) {
+        // Drop cached day files that have been re-saved or graded since.
+        if (hist) h.days.forEach(function (d) { var old = hist.days.find(function (x) { return x.date === d.date; }); if (!old || old.made_at !== d.made_at || JSON.stringify(old.results) !== JSON.stringify(d.results)) delete histDays[d.date]; });
+        hist = h; if (data) renderPast();
+      })
+      .catch(function () { if (data) renderPast(); });
+  }
+
   function renderPredictions() {
     document.querySelectorAll('#pred-seg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.horizon === horizon)); });
     document.getElementById('pred-rule').textContent = RULE[horizon];
@@ -309,6 +441,7 @@
         el('span', 'verdict ' + verdict[0], verdict[1]),
         ' On average the picks returned ', el('strong', null, pct(bt.avg_edge) + '%'), ' compared with their group, so the score mostly helps avoid losers rather than find big winners.');
     }
+    renderPast();
     document.querySelectorAll('table[data-pred]').forEach(function (t) {
       var rows = (m.picks[t.dataset.pred] || []).map(function (s, i) {
         var tr = el('tr');
@@ -381,7 +514,7 @@
   function load() {
     return fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { data = d; render(); return d; })
+      .then(function (d) { var fresh = !data || data.synced_at !== d.synced_at; data = d; render(); if (fresh) loadHistory(); return d; })
       .catch(function () {
         var t = document.getElementById('takeaway');
         t.textContent = 'No data yet. The first sync may still be running; this page will try again shortly.';
@@ -418,6 +551,10 @@
     menuBtn.setAttribute('aria-expanded', String(open));
     menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
   }
+  document.getElementById('past-day').addEventListener('change', function (e) { pastDate = e.target.value; renderPast(); });
+  document.getElementById('past-older').addEventListener('click', function () { var d = pastList(), i = d.findIndex(function (x) { return x.date === pastDate; }); if (i < d.length - 1) { pastDate = d[i + 1].date; renderPast(); } });
+  document.getElementById('past-newer').addEventListener('click', function () { var d = pastList(), i = d.findIndex(function (x) { return x.date === pastDate; }); if (i > 0) { pastDate = d[i - 1].date; renderPast(); } });
+
   menuBtn.addEventListener('click', function () { setMenu(menu.hidden); if (!menu.hidden) menu.querySelector('a').focus(); });
   menu.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
   document.addEventListener('click', function (e) { if (!menu.hidden && !e.target.closest('.topbar')) setMenu(false); });

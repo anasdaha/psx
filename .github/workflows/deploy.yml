@@ -20,12 +20,12 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
-      # config.php, data.json and cache/ are owned by the server (secret key and live data), so never overwrite them.
+      # config.php, data.json, cache/ and history/ are owned by the server (secret key and live data), so never overwrite them.
       - name: Upload files
         run: |
           rsync -rcv \
             --exclude '.git*' --exclude '.github/' \
             --exclude 'config.php' --exclude 'config.example.php' \
-            --exclude 'data.json' --exclude 'cache/' \
+            --exclude 'data.json' --exclude 'cache/' --exclude 'history/' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
             ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/"

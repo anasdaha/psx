@@ -23,6 +23,7 @@ const HIST_SESSIONS = 260;     // about one year of sessions to keep
 const MAX_NEW_FILES = 40;      // closing files to download per run while back-filling history
 const MIN_AVG_VOLUME = 50000;
 const FIRST_SESSION = 60;      // sessions of history a stock needs before it can be scored
+const HISTORY_DAYS = 90;       // calendar days of saved predictions to keep in history/
 const MODELS = [
     'tomorrow' => ['h' => 1,  'label' => 'next trading day',     'w' => ['calm' => 1, 'steady' => 1, 'bounce' => 1,   'nospike' => 1,   'high' => 0.5]],
     'week'     => ['h' => 5,  'label' => 'next 5 trading days',  'w' => ['calm' => 1, 'steady' => 1, 'bounce' => 1,   'nospike' => 0.5, 'high' => 1]],
@@ -233,10 +234,12 @@ function build_predictions($cache, $kse, $kmi, $liveRows, $sessionDate) {
     $t = $T - 1;
     $fv = factor_values($S, $sectors, $t);
     $out = ['ready' => true, 'based_on' => $sessionDate, 'models' => []];
+    $allScores = [];
     foreach (MODELS as $m => $info) {
         $lists = [];
         foreach (['sharia' => $sharia, 'conv' => $conv] as $g => $members) {
             $score = scores($m, $fv, $members);
+            $allScores[$m][$g] = $score;
             $lists[$g] = array_map(function ($s) use ($fv, $score, $kse) {
                 $f = $fv[$s];
                 return ['symbol' => $s, 'name' => $kse[$s]['name'],
@@ -248,5 +251,111 @@ function build_predictions($cache, $kse, $kmi, $liveRows, $sessionDate) {
         }
         $out['models'][$m] = ['horizon' => $info['label'], 'weights' => $info['w'], 'picks' => $lists, 'backtest' => $bt[$m]];
     }
+
+    // Saving history must never stop the predictions from updating.
+    try {
+        $dir = dirname($cache) . '/history';
+        save_snapshot($dir, $sessionDate, $live !== null, $allScores, $fv, $kse);
+        $out['live_record'] = grade_history($dir, $hist, $symbols);
+    } catch (Throwable $e) {
+        $out['history_error'] = $e->getMessage();
+    }
     return $out;
+}
+
+// History: one file per session, history/YYYY-MM-DD.json, holding every scored stock's score, price and
+// factor values for each horizon (not only the top 10, so the data can be reused to improve the model).
+// The file is rewritten on every sync during that session; the last write after the close is the final one.
+function save_snapshot($dir, $date, $intraday, $allScores, $fv, $kse) {
+    @mkdir($dir, 0755, true);
+    $path = "$dir/$date.json";
+    $old = is_file($path) ? json_decode(file_get_contents($path), true) : null;
+    $snap = ['date' => $date, 'made_at' => date('c'), 'intraday' => $intraday, 'picks' => [], 'scores' => [], 'prices' => [], 'factors' => []];
+    foreach ($allScores as $m => $groups) {
+        foreach ($groups as $g => $score) {
+            $snap['picks'][$m][$g] = top_n($score);
+            $snap['scores'][$m][$g] = array_map(function ($v) { return (int)round($v * 100); }, $score);
+        }
+    }
+    foreach ($fv as $s => $f) {
+        $snap['prices'][$s] = $kse[$s]['current'] > 0 ? $kse[$s]['current'] : $kse[$s]['ldcp'];
+        $snap['factors'][$s] = array_map(function ($k) use ($f) { return $f[$k] === null ? null : round($f[$k], 5); },
+                                         ['calm' => 'calm', 'steady' => 'steady', 'bounce' => 'bounce', 'nospike' => 'nospike', 'high' => 'high']);
+    }
+    if ($old && isset($old['outcomes'])) $snap['outcomes'] = $old['outcomes'];
+    file_put_contents("$path.tmp", json_encode($snap));
+    rename("$path.tmp", $path);
+}
+
+// Grade every saved snapshot whose horizon has passed, using closing prices (dividend-safe index, the same
+// test as the back-test: did each pick beat the median stock of its group?). Then write history/index.json.
+function grade_history($dir, $hist, $symbols) {
+    $S = series($hist, $symbols, null);
+    $P = $S['P'];
+    $dates = array_keys($hist);
+    $pos = array_flip($dates);
+    $last = count($dates) - 1;
+    $cutoff = date('Y-m-d', strtotime('-' . HISTORY_DAYS . ' days'));
+    $days = [];
+    $record = [];
+    foreach (MODELS as $m => $_) $record[$m] = ['days' => 0, 'picks' => 0, 'hits' => 0, 'edge_sum' => 0.0, 'edge_n' => 0];
+
+    $files = glob("$dir/????-??-??.json");
+    rsort($files);
+    foreach ($files as $path) {
+        $date = basename($path, '.json');
+        if ($date < $cutoff) { @unlink($path); continue; }
+        $snap = json_decode(file_get_contents($path), true);
+        if (!$snap) continue;
+        $i = $pos[$date] ?? null;
+        $changed = false;
+        $summary = [];
+        foreach (MODELS as $m => $info) {
+            $h = $info['h'];
+            $o = $snap['outcomes'][$m] ?? null;
+            if (!$o || $o['status'] !== 'done') {
+                if ($i !== null && $i + $h <= $last) {
+                    $o = ['status' => 'done', 'end_date' => $dates[$i + $h], 'returns' => [], 'group_median' => [], 'group_avg' => [], 'hits' => [], 'edge' => []];
+                    foreach ($snap['scores'][$m] as $g => $scored) {
+                        $ret = [];
+                        foreach ($scored as $s => $_) if (isset($P[$s][$i + $h])) $ret[$s] = $P[$s][$i + $h] / $P[$s][$i] - 1;
+                        if (!$ret) continue;
+                        $median = median(array_values($ret));
+                        $avg = array_sum($ret) / count($ret);
+                        $picks = array_values(array_filter($snap['picks'][$m][$g], function ($s) use ($ret) { return isset($ret[$s]); }));
+                        $hits = 0; $sum = 0;
+                        foreach ($picks as $s) { $o['returns'][$g][$s] = round($ret[$s] * 100, 2); $hits += $ret[$s] > $median; $sum += $ret[$s]; }
+                        $o['group_median'][$g] = round($median * 100, 2);
+                        $o['group_avg'][$g] = round($avg * 100, 2);
+                        $o['hits'][$g] = [$hits, count($picks)];
+                        $o['edge'][$g] = $picks ? round(($sum / count($picks) - $avg) * 100, 2) : null;
+                    }
+                } else {
+                    $o = ['status' => 'pending', 'sessions_done' => $i !== null ? $last - $i : 0, 'sessions_needed' => $h];
+                }
+                $snap['outcomes'][$m] = $o;
+                $changed = true;
+            }
+            if ($o['status'] === 'done') {
+                $hits = 0; $n = 0;
+                foreach ($o['hits'] as $g => [$hh, $nn]) { $hits += $hh; $n += $nn; }
+                foreach ($o['edge'] as $e) if ($e !== null) { $record[$m]['edge_sum'] += $e; $record[$m]['edge_n']++; }
+                $record[$m]['days']++; $record[$m]['picks'] += $n; $record[$m]['hits'] += $hits;
+                $summary[$m] = ['status' => 'done', 'end_date' => $o['end_date'], 'hit_rate' => $n ? round($hits / $n * 100) : null];
+            } else {
+                $summary[$m] = ['status' => 'pending', 'sessions_done' => $o['sessions_done'], 'sessions_needed' => $o['sessions_needed']];
+            }
+        }
+        if ($changed) { file_put_contents("$path.tmp", json_encode($snap)); rename("$path.tmp", $path); }
+        $days[] = ['date' => $date, 'made_at' => $snap['made_at'], 'results' => $summary];
+    }
+    $live = [];
+    foreach ($record as $m => $r) {
+        $live[$m] = ['days' => $r['days'], 'picks' => $r['picks'],
+                     'hit_rate' => $r['picks'] ? round($r['hits'] / $r['picks'] * 100, 1) : null,
+                     'avg_edge' => $r['edge_n'] ? round($r['edge_sum'] / $r['edge_n'], 2) : null];
+    }
+    file_put_contents("$dir/index.json.tmp", json_encode(['updated' => date('c'), 'live_record' => $live, 'days' => $days]));
+    rename("$dir/index.json.tmp", "$dir/index.json");
+    return $live;
 }
