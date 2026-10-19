@@ -19,6 +19,33 @@
       --accent: #5cc79c; --up: #4cc38a; --down: #ef7a6c; --warn: #e0b04f; --note: #1c2a23; --warn-bg: #2a2416; color-scheme: dark; }
   }
   * { box-sizing: border-box; }
+  html { scroll-padding-top: 72px; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  .topbar { position: sticky; top: 0; z-index: 20; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .topbar-in { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); text-decoration: none; font-weight: 600; font-size: 16px; }
+  .brand svg { flex: none; }
+  .brand small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); line-height: 1.2; }
+  .menu-btn { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 8px; background: transparent; display: grid; place-content: center; gap: 4px; cursor: pointer; }
+  .menu-btn:hover { background: var(--note); }
+  .menu-btn:focus-visible, .menu a:focus-visible, .brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .menu-btn span { display: block; width: 18px; height: 2px; border-radius: 1px; background: var(--fg); transition: transform .2s, opacity .2s; }
+  .menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+  .menu { position: absolute; left: 0; right: 0; top: 100%; background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: 0 12px 24px rgba(0, 0, 0, .12); }
+  .menu ul { list-style: none; margin: 0; padding: 10px 0 14px; display: grid; gap: 4px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+  .menu a { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; color: var(--fg); text-decoration: none; }
+  .menu a:hover { background: var(--note); }
+  .menu .ico { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--note); font-size: 13px; }
+  .menu strong { display: block; font-weight: 600; }
+  .menu small { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; }
+  .hero { background: linear-gradient(180deg, var(--note), var(--bg)); border-bottom: 1px solid var(--line); }
+  .hero .wrap { padding-block: 32px 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
+  .eyebrow { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .lede { margin: 10px 0 14px; max-width: 62ch; font-size: 16px; }
+  .hero-art { color: var(--muted); }
+  @media (max-width: 760px) { .hero-art { display: none; } .hero .wrap { grid-template-columns: 1fr; padding-block: 24px 20px; } }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
   .wrap { max-width: 1180px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
   .sync { background: var(--note); border-block: 1px solid var(--line); font-size: 13px; }
@@ -86,16 +113,49 @@
   @media (max-width: 560px) { .hide-narrow { display: none; } }
 </style>
 </head>
-<body>
+<body id="top">
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top" aria-label="PSX Top 10 Movers, back to top">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M7 21l5-5 4 3 8-9" fill="none" stroke="var(--panel)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10h5v5" fill="none" stroke="var(--panel)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>PSX Movers<small>KSE-100 tracker</small></span>
+    </a>
+    <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="site-menu" aria-label="Open menu"><span></span><span></span><span></span></button>
+  </div>
+  <nav class="menu" id="site-menu" aria-label="Sections" hidden>
+    <div class="wrap"><ul>
+      <li><a href="#gainers"><span class="ico up" aria-hidden="true">▲</span><span><strong>Top performers</strong><small>Biggest gainers, Sharia and non-Sharia</small></span></a></li>
+      <li><a href="#fallers"><span class="ico down" aria-hidden="true">▼</span><span><strong>Top losses</strong><small>Biggest fallers for the same period</small></span></a></li>
+      <li><a href="#predictions"><span class="ico" aria-hidden="true">◆</span><span><strong>Predictions</strong><small>Scored picks with their track record</small></span></a></li>
+      <li><a href="#method"><span class="ico" aria-hidden="true">i</span><span><strong>How it works</strong><small>Data sources and method</small></span></a></li>
+    </ul></div>
+  </nav>
+</header>
+
 <div class="sync" id="sync-top"><div class="wrap"><span><span class="dot"></span><strong>Data syncs every <span class="mins">5</span> minutes</strong> from the Pakistan Stock Exchange (dps.psx.com.pk).</span><span class="last">Loading…</span></div></div>
 
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Pakistan Stock Exchange · KSE-100</p>
+      <h1>PSX Top 10 Movers</h1>
+      <p class="lede">See which KSE-100 stocks are rising and falling today, this week and this month, split into Sharia-compliant and non-Sharia lists, with outlook picks that show their own track record.</p>
+      <p class="updated" id="updated">Last updated: checking…</p>
+    </div>
+    <svg class="hero-art" width="240" height="120" viewBox="0 0 240 120" aria-hidden="true">
+      <g stroke="currentColor" stroke-opacity=".25" stroke-width="1"><path d="M0 30h240M0 60h240M0 90h240"/></g>
+      <path d="M8 92 40 80 64 86 92 60 118 66 146 40 172 48 200 22 232 16" fill="none" stroke="var(--up)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 36 38 44 66 40 94 62 120 58 150 78 176 74 204 96 232 102" fill="none" stroke="var(--down)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".8"/>
+      <circle cx="232" cy="16" r="5" fill="var(--up)"/><circle cx="232" cy="102" r="5" fill="var(--down)"/>
+    </svg>
+  </div>
+</section>
+
 <main class="wrap">
-  <header>
-    <h1>PSX Top 10 Movers</h1>
-    <p class="updated" id="updated">Last updated: checking…</p>
+  <div>
     <p class="take" id="takeaway">Loading prices…</p>
     <p class="dates" id="dates"></p>
-  </header>
+  </div>
 
   <div class="seg" role="group" aria-label="Period">
     <button type="button" data-period="day">Today</button>
@@ -103,7 +163,7 @@
     <button type="button" data-period="month">Month</button>
   </div>
 
-  <div class="grid">
+  <div class="grid" id="gainers">
     <section class="card">
       <h2>Sharia-compliant gainers</h2>
       <p class="note">KSE-100 stocks that are also in PSX's KMI All Share index.</p>
@@ -166,7 +226,7 @@
   </div>
   <p class="disclaimer-foot">Reminder: predictions only, no guarantee. Do your own research before you buy or sell.</p>
 
-  <section class="card">
+  <section class="card" id="method">
     <h2>How this is worked out</h2>
     <ul class="method">
       <li>Stocks: the KSE-100 index members listed on dps.psx.com.pk. Sharia-compliant means the stock is also in PSX's KMI All Share index.</li>
@@ -351,6 +411,17 @@
       renderPredictions();
     });
   });
+
+  var menuBtn = document.getElementById('menu-btn'), menu = document.getElementById('site-menu');
+  function setMenu(open) {
+    menu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+    menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+  menuBtn.addEventListener('click', function () { setMenu(menu.hidden); if (!menu.hidden) menu.querySelector('a').focus(); });
+  menu.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
+  document.addEventListener('click', function (e) { if (!menu.hidden && !e.target.closest('.topbar')) setMenu(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
 
   render();
   load().then(syncIfOld);
