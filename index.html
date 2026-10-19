@@ -80,6 +80,14 @@
   .up { color: var(--up); } .down { color: var(--down); }
   .chip { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; font-weight: 500; color: var(--warn); font-family: var(--sans); }
   .method { margin: 0; padding-left: 1.2em; color: var(--muted); font-size: 13px; max-width: 85ch; }
+  .about { border-top: 1px solid var(--line); padding-top: 12px; }
+  .about summary { cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 500; width: fit-content; }
+  .about summary:hover { color: var(--fg); }
+  .about summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .about[open] summary { margin-bottom: 10px; color: var(--fg); }
+  .chip[data-tip] { position: relative; cursor: help; }
+  .chip[data-tip]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tip { position: fixed; z-index: 30; max-width: min(260px, calc(100vw - 32px)); padding: 8px 10px; border-radius: 6px; background: var(--fg); color: var(--bg); font: 400 12px/1.4 var(--sans); box-shadow: 0 6px 16px rgba(0, 0, 0, .2); pointer-events: none; }
   .method li + li { margin-top: 4px; }
   .err { color: var(--down); }
   .sub { margin: 0; font-size: clamp(20px, 2.6vw, 24px); font-weight: 600; }
@@ -144,7 +152,7 @@
       <li><a href="#fallers"><span class="ico down" aria-hidden="true">▼</span><span><strong>Top losses</strong><small>Biggest fallers, with their own period filter</small></span></a></li>
       <li><a href="#predictions"><span class="ico" aria-hidden="true">◆</span><span><strong>Predictions</strong><small>Scored picks with their track record</small></span></a></li>
       <li><a href="#past"><span class="ico" aria-hidden="true">↺</span><span><strong>Past predictions</strong><small>What we picked before and how it did</small></span></a></li>
-      <li><a href="#method"><span class="ico" aria-hidden="true">i</span><span><strong>How it works</strong><small>Data sources and method</small></span></a></li>
+      <li><a href="#method"><span class="ico" aria-hidden="true">i</span><span><strong>About the data</strong><small>Sources, periods and tags explained</small></span></a></li>
     </ul></div>
   </nav>
 </header>
@@ -275,22 +283,16 @@
   </section>
   <p class="disclaimer-foot">Reminder: predictions only, no guarantee. Do your own research before you buy or sell.</p>
 
-  <section class="card" id="method">
-    <h2>How this is worked out</h2>
+  <details class="about" id="method">
+    <summary>About the data and method</summary>
     <ul class="method">
-      <li>Stocks: the KSE-100 index members listed on dps.psx.com.pk. Sharia-compliant means the stock is also in PSX's KMI All Share index.</li>
-      <li>Today compares the latest price with the previous close. Week compares with the close 5 trading sessions back, Month with the close 21 sessions back.</li>
-      <li>During market hours the price is PSX's latest traded price at the last sync, so it moves until the close.</li>
-      <li>Volume is shares traded over the same period. A "thin" tag means volume was under a quarter of the typical KSE-100 stock for that period, so the move rests on few trades.</li>
-      <li>An "XD" tag means the stock went ex-dividend in the period. Prices are not adjusted, so its Week or Month change is understated by the dividend.</li>
-      <li>Predictions use a multi-factor score. Twenty factors were tested on 13 months of PSX prices (Sep 2025 to Oct 2026), and five were kept: low volatility, small daily ranges, a recent fall compared with the sector, no recent one-day spike, and closeness to the 52-week high. Buying recent winners (momentum) and following trends did not work on PSX, so the score does not use them.</li>
-      <li>Each factor is ranked within the stock's group (Sharia or non-Sharia), and the score is the weighted average of those ranks, shown from 0 to 100. Swing is the average gap between a day's high and low, as a share of the price, over the last 20 days. "From high" is how far the price is below its highest point of the past year.</li>
-      <li>The track record shown with the picks is recalculated every day on the past year of data. The score's edge is small: its picks beat the typical stock a little more often than chance, but their average return is close to the group average.</li>
-      <li>Every prediction is saved, one file per trading day, and kept for 90 days. The version saved after the close is the final one. Once its period has passed (1, 5 or 21 trading days), each pick is graded on PSX closing prices with the same test as the track record: did it beat the typical (median) stock in its group? Until then, Past predictions shows results so far from the latest prices.</li>
-      <li>The track record uses today's KSE-100 members, so it leaves out companies that dropped out of the index. That makes past results look a little better than they really were.</li>
-      <li>Nothing here is a buy or sell recommendation.</li>
+      <li><strong>Data:</strong> KSE-100 stocks from the Pakistan Stock Exchange (dps.psx.com.pk), refreshed every few minutes. Sharia-compliant means the stock is also in PSX's KMI All Share index.</li>
+      <li><strong>Periods:</strong> Today compares with the previous close, Week with the close 5 trading days back, Month with 21 trading days back. During market hours prices are the latest trades, so they move until the close.</li>
+      <li><strong>Tags:</strong> "thin" means far fewer shares traded than a typical KSE-100 stock, so the move rests on few trades. "XD" means the stock went ex-dividend, so its Week or Month change looks smaller than it really was (XB and XR are the same for bonus and rights issues).</li>
+      <li><strong>Predictions:</strong> a score built from five price-based factors that held up when tested on a year of PSX prices. Every prediction is saved and graded afterwards. See Past predictions for the real record. The edge is small.</li>
+      <li>Nothing here is investment advice or a recommendation to buy or sell.</li>
     </ul>
-  </section>
+  </details>
 </main>
 
 <div class="sync" id="sync-bottom"><div class="wrap"><span><span class="dot"></span><strong>Data syncs every <span class="mins">5</span> minutes</strong> from the Pakistan Stock Exchange.</span><span class="last"></span></div></div>
@@ -308,6 +310,13 @@
   var day = function (s) { return new Date(s + 'T00:00:00+05:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Karachi' }); };
   var time = function (s) { return new Date(s).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short', timeZone: 'Asia/Karachi' }) + ' PKT'; };
   var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  var CORP = { XD: 'dividend', XB: 'bonus', XR: 'rights' };
+  function tip(text, help) {
+    var c = el('span', 'chip', text);
+    c.dataset.tip = help; c.tabIndex = 0; c.setAttribute('aria-label', text + ': ' + help);
+    return c;
+  }
 
   function top10(sharia, down) {
     var period = periods[down ? 'down' : 'up'];
@@ -507,9 +516,9 @@
       var rows = list.map(function (s, i) {
         var tr = el('tr');
         var sym = el('td', 'sym', s.symbol);
-        if (s.corp_action && period !== 'day') sym.append(el('span', 'chip', s.corp_action));
+        if (s.corp_action && period !== 'day') sym.append(tip(s.corp_action, 'Went ex-' + s.corp_action.split(' ').map(function (c) { return CORP[c]; }).join(' / ') + ' in this period. Prices are not adjusted, so the change looks smaller than it really was.'));
         var vol = el('td', 'num', nf0.format(s[VOL[period]]));
-        if (s[VOL[period]] < thin) vol.append(el('span', 'chip', 'thin'));
+        if (s[VOL[period]] < thin) vol.append(tip('thin', 'Thin trading: under a quarter of the volume of a typical KSE-100 stock for this period, so the move rests on few trades.'));
         tr.append(el('td', 'rank', i + 1), sym, el('td', 'co hide-narrow', s.name),
           el('td', 'num ' + (s[period] > 0 ? 'up' : s[period] < 0 ? 'down' : ''), pct(s[period])),
           vol, el('td', 'num', nf2.format(s.price)));
@@ -584,8 +593,28 @@
   document.getElementById('past-older').addEventListener('click', function () { var d = pastList(), i = d.findIndex(function (x) { return x.date === pastDate; }); if (i < d.length - 1) { pastDate = d[i + 1].date; renderPast(); } });
   document.getElementById('past-newer').addEventListener('click', function () { var d = pastList(), i = d.findIndex(function (x) { return x.date === pastDate; }); if (i > 0) { pastDate = d[i - 1].date; renderPast(); } });
 
+  // One floating tooltip for the "thin" / "XD" tags (hover, keyboard focus or tap).
+  var tipBox = el('div', 'tip'); tipBox.hidden = true; tipBox.setAttribute('role', 'tooltip'); document.body.append(tipBox);
+  function showTip(c) {
+    tipBox.textContent = c.dataset.tip; tipBox.hidden = false;
+    var r = c.getBoundingClientRect(), w = tipBox.offsetWidth, h = tipBox.offsetHeight;
+    tipBox.style.left = Math.max(16, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 16)) + 'px';
+    tipBox.style.top = (r.bottom + 6 + h > innerHeight ? r.top - h - 6 : r.bottom + 6) + 'px';
+  }
+  function hideTip() { tipBox.hidden = true; }
+  document.addEventListener('mouseover', function (e) { var c = e.target.closest('[data-tip]'); if (c) showTip(c); });
+  document.addEventListener('mouseout', function (e) { if (e.target.closest('[data-tip]')) hideTip(); });
+  document.addEventListener('focusin', function (e) { var c = e.target.closest('[data-tip]'); if (c) showTip(c); else hideTip(); });
+  document.addEventListener('focusout', hideTip);
+  addEventListener('scroll', hideTip, { passive: true });
+
   menuBtn.addEventListener('click', function () { setMenu(menu.hidden); if (!menu.hidden) menu.querySelector('a').focus(); });
-  menu.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
+  menu.addEventListener('click', function (e) {
+    var a = e.target.closest('a');
+    if (!a) return;
+    if (a.getAttribute('href') === '#method') document.getElementById('method').open = true;
+    setMenu(false);
+  });
   document.addEventListener('click', function (e) { if (!menu.hidden && !e.target.closest('.topbar')) setMenu(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
 
